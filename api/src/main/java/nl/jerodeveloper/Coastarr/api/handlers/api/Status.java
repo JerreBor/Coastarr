@@ -4,7 +4,6 @@ import nl.jerodeveloper.coastarr.api.Constants;
 import nl.jerodeveloper.coastarr.api.annotations.*;
 import nl.jerodeveloper.coastarr.api.objects.ServerState;
 
-import java.net.HttpURLConnection;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Handler(returnType = ReturnType.JSON, requestType = RequestType.GET)
