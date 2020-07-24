@@ -1,4 +1,4 @@
-package nl.jerodeveloper.Coastarr.api.filters;
+package nl.jerodeveloper.coastarr.api.filters;
 
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpExchange;

@@ -1,4 +1,4 @@
-package nl.jerodeveloper.Coastarr.api.objects;
+package nl.jerodeveloper.coastarr.api.objects;
 
 public enum ServerState {
 
