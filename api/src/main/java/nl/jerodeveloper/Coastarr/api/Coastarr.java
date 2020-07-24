@@ -4,7 +4,7 @@ import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
 import nl.jerodeveloper.coastarr.api.annotations.Handler;
 import nl.jerodeveloper.coastarr.api.annotations.HandlerLoader;
-import nl.jerodeveloper.coastarr.api.handlers.IndexHandler;
+import nl.jerodeveloper.coastarr.api.handlers.Index;
 import nl.jerodeveloper.coastarr.api.handlers.api.Status;
 import nl.jerodeveloper.coastarr.api.objects.ServerState;
 
@@ -43,7 +43,7 @@ public class Coastarr {
 
         // Register handlers
 
-        handler(IndexHandler::new);
+        handler(Index::new);
         handler(() -> new Status(serverState));
 
         httpServer = handlerLoader.load();
