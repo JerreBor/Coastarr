@@ -9,8 +9,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 public @interface Handler {
 
-    RequestType[] requestType();
-    ReturnType returnType();
     String route() default "";
 
 }

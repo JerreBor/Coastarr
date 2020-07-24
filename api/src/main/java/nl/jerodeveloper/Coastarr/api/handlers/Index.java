@@ -2,10 +2,10 @@ package nl.jerodeveloper.coastarr.api.handlers;
 
 import nl.jerodeveloper.coastarr.api.annotations.*;
 
-@Handler(requestType = RequestType.ALL, returnType = ReturnType.TEXT, route = "/")
+@Handler(route = "/")
 public class Index {
 
-    @Handle
+    @Handle(requestType = RequestType.GET, returnType = ReturnType.JSON)
     public Response handle() {
         return Response.builder()
                 .text("Hello, World!\n")
