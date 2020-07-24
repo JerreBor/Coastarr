@@ -8,7 +8,8 @@ public enum Constants {
 
     INSTANCE;
 
-    @Getter private Gson gson = new GsonBuilder()
+    @Getter private final Gson gson = new GsonBuilder()
+            .setPrettyPrinting()
             .create();
 
 }
