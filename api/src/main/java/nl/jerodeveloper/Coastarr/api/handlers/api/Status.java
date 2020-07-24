@@ -1,4 +1,4 @@
-package nl.jerodeveloper.coastarr.api.handlers.status;
+package nl.jerodeveloper.coastarr.api.handlers.api;
 
 import com.sun.net.httpserver.HttpExchange;
 import nl.jerodeveloper.coastarr.api.Constants;
@@ -12,12 +12,12 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Handler(returnType = ReturnType.JSON, requestType = RequestType.GET, context = "/api/status")
-public class StatusHandler {
+@Handler(returnType = ReturnType.JSON, requestType = RequestType.GET)
+public class Status {
 
     private final AtomicReference<ServerState> serverState;
 
-    public StatusHandler(AtomicReference<ServerState> serverState) {
+    public Status(AtomicReference<ServerState> serverState) {
         this.serverState = serverState;
     }
 
