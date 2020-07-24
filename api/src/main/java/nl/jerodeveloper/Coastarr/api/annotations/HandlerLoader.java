@@ -4,7 +4,6 @@ import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import lombok.AccessLevel;
 import lombok.Getter;
 import nl.jerodeveloper.coastarr.api.filters.Logging;
 import nl.jerodeveloper.coastarr.api.filters.Tracing;
@@ -12,7 +11,6 @@ import org.reflections.Reflections;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,10 +36,10 @@ public class HandlerLoader {
         reflections.getTypesAnnotatedWith(Handler.class, true).forEach(handlerClass -> {
             Handler handler = handlerClass.getAnnotation(Handler.class);
 
-            String route = handler.context().equals("") ? "/" + handlerClass
+            String route = handler.route().equals("") ? "/" + handlerClass
                     .getCanonicalName()
                     .replaceFirst("nl.jerodeveloper.coastarr.api.handlers.", "")
-                    .replaceAll("\\.", "/").toLowerCase() : handler.context();
+                    .replaceAll("\\.", "/").toLowerCase() : handler.route();
             logger.info(String.format("Found handler %s with route %s", handlerClass.getSimpleName(), route));
 
             Object objectInHandlerList = null;
@@ -71,7 +69,12 @@ public class HandlerLoader {
                 return;
             }
 
-            httpServer.createContext(handler.context().equals("") ? route : handler.context(), exchange(handler, route, method, objectInHandlerList))
+            if (method.getReturnType() != Response.class) {
+                logger.warning("Handler method in class " + handlerClass + " does not return Response");
+                return;
+            }
+
+            httpServer.createContext(handler.route().equals("") ? route : handler.route(), exchange(handler, route, method, objectInHandlerList))
                     .getFilters().addAll(filters);
 
             logger.info("Succesfully registered " + route + "!");
@@ -90,12 +93,43 @@ public class HandlerLoader {
 
             exchange.getResponseHeaders().add("Content-Type", handler.returnType().getHeader());
             exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
-            invokeMethod(method, exchange, toInvoke);
+            Response response = invokeMethod(method, exchange, toInvoke);
+
+            if (response == null) {
+                exchange.sendResponseHeaders(HttpURLConnection.HTTP_INTERNAL_ERROR, -1);
+            } else {
+                if (response.getCode() != 0) {
+                    exchange.sendResponseHeaders(response.getCode(),
+                            response.getJson() == null ? (response.getText() == null ? 0 : response.getText().length()) : response.getJson().length());
+                } else {
+                    exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK,
+                            response.getJson() == null ? (response.getText() == null ? 0 : response.getText().length()) : response.getJson().length());
+                }
+
+                switch (handler.returnType()) {
+                    case JSON -> {
+                        if (response.getJson() == null) {
+                            throw new RuntimeException(toInvoke.getClass() + " with ReturnType of JSON does not return JSON response.");
+                        }
+
+                        exchange.getResponseBody().write(response.getJson().getBytes());
+                    }
+                    case TEXT -> {
+                        if (response.getText() == null) {
+                            throw new RuntimeException(toInvoke.getClass() + " with ReturnType of TEXT does not return TEXT response.");
+                        }
+
+                        exchange.getResponseBody().write(response.getText().getBytes());
+                    }
+                }
+
+            }
+
             exchange.close();
         };
     }
 
-    private void invokeMethod(Method method, HttpExchange exchange, Object toInvoke) {
+    private Response invokeMethod(Method method, HttpExchange exchange, Object toInvoke) {
 /*        List<Object> invokeObjects = new ArrayList<>();
         for (Class<?> parameter : method.getParameterTypes()) {
             if (parameter == HttpHandler.class) {
@@ -104,10 +138,15 @@ public class HandlerLoader {
         }*/
 
         try {
-            method.invoke(toInvoke, exchange);
+            if (method.getParameterTypes().length == 1 && method.getParameterTypes()[0] == HttpExchange.class) {
+                return (Response) method.invoke(toInvoke, exchange);
+            } else {
+                return (Response) method.invoke(toInvoke);
+            }
         } catch (IllegalAccessException | InvocationTargetException e) {
             logger.severe("Something went wrong while invoking method: " + method.getName() + " in class " + toInvoke.getClass().getCanonicalName());
             e.printStackTrace();
+            return null;
         }
     }
 

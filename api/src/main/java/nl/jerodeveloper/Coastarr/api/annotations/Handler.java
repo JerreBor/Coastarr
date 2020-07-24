@@ -11,6 +11,6 @@ public @interface Handler {
 
     RequestType[] requestType();
     ReturnType returnType();
-    String context()    default "";
+    String route() default "";
 
 }
