@@ -1,4 +1,4 @@
-package nl.jerodeveloper.Coastarr.api.annotations;
+package nl.jerodeveloper.coastarr.api.annotations;
 
 public enum RequestType {
 

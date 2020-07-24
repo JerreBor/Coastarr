@@ -1,10 +1,10 @@
-package nl.jerodeveloper.Coastarr.api.handlers;
+package nl.jerodeveloper.coastarr.api.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
-import nl.jerodeveloper.Coastarr.api.annotations.Handle;
-import nl.jerodeveloper.Coastarr.api.annotations.Handler;
-import nl.jerodeveloper.Coastarr.api.annotations.RequestType;
-import nl.jerodeveloper.Coastarr.api.annotations.ReturnType;
+import nl.jerodeveloper.coastarr.api.annotations.Handle;
+import nl.jerodeveloper.coastarr.api.annotations.Handler;
+import nl.jerodeveloper.coastarr.api.annotations.RequestType;
+import nl.jerodeveloper.coastarr.api.annotations.ReturnType;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;

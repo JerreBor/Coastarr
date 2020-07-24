@@ -1,8 +1,8 @@
-package nl.jerodeveloper.Coastarr.api;
+package nl.jerodeveloper.coastarr.api;
 
 import com.sun.net.httpserver.HttpServer;
-import nl.jerodeveloper.Coastarr.api.annotations.HandlerLoader;
-import nl.jerodeveloper.Coastarr.api.objects.ServerState;
+import nl.jerodeveloper.coastarr.api.annotations.HandlerLoader;
+import nl.jerodeveloper.coastarr.api.objects.ServerState;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

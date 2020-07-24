@@ -1,4 +1,4 @@
-package nl.jerodeveloper.Coastarr.api;
+package nl.jerodeveloper.coastarr.api;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

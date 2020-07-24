@@ -1,4 +1,4 @@
-package nl.jerodeveloper.Coastarr.api.annotations;
+package nl.jerodeveloper.coastarr.api.annotations;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
