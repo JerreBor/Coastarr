@@ -5,7 +5,7 @@ import nl.jerodeveloper.coastarr.api.annotations.*;
 @Handler(route = "/")
 public class Index {
 
-    @Handle(requestType = RequestType.GET, returnType = ReturnType.JSON)
+    @Handle(requestType = RequestType.GET, returnType = ReturnType.TEXT)
     public Response handle() {
         return Response.builder()
                 .text("Hello, World!\n")
