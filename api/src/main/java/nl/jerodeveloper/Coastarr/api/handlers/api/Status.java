@@ -1,8 +1,8 @@
 package nl.jerodeveloper.coastarr.api.handlers.api;
 
-import nl.jerodeveloper.coastarr.api.Constants;
 import nl.jerodeveloper.coastarr.api.annotations.*;
 import nl.jerodeveloper.coastarr.api.objects.ServerState;
+import nl.jerodeveloper.coastarr.api.util.JsonMessage;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -17,9 +17,8 @@ public class Status {
 
     @Handle(requestType = RequestType.GET, returnType = ReturnType.JSON)
     public Response handle() {
-        String json = Constants.INSTANCE.getGson().toJson(serverState.get());
         return Response.builder()
-                .json(json)
+                .json(new JsonMessage(serverState.get().name()))
                 .build();
     }
 

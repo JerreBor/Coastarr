@@ -11,5 +11,6 @@ public @interface Handle {
 
     RequestType requestType();
     ReturnType returnType();
+    AuthorizationType authorization() default AuthorizationType.BEARER;
 
 }

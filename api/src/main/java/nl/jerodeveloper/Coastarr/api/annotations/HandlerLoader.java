@@ -8,12 +8,17 @@ import lombok.Getter;
 import nl.jerodeveloper.coastarr.api.Constants;
 import nl.jerodeveloper.coastarr.api.filters.Logging;
 import nl.jerodeveloper.coastarr.api.filters.Tracing;
+import nl.jerodeveloper.coastarr.api.util.AuthenticationUtil;
+import nl.jerodeveloper.coastarr.api.util.JsonMessage;
 import org.reflections.Reflections;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -26,7 +31,7 @@ public class HandlerLoader {
 
     public HandlerLoader(HttpServer httpServer) {
         this.httpServer = httpServer;
-        this.logger = Logger.getLogger("handlerfinder");
+        this.logger = Logger.getLogger("handlerloader");
         this.handlerList = new ArrayList<>();
         this.filters = Arrays.asList(new Logging(Logger.getLogger("http")), new Tracing(() -> Long.toString(System.nanoTime())));
     }
@@ -112,9 +117,73 @@ public class HandlerLoader {
 
             Handle handle = method.getAnnotation(Handle.class);
 
+            InputStreamReader inputStreamReader = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+            int b;
+            StringBuilder buf = new StringBuilder(512);
+            while ((b = bufferedReader.read()) != -1) {
+                buf.append((char) b);
+            }
+
+            bufferedReader.close();
+            inputStreamReader.close();
+
+            Map<String, String> parameters = new LinkedHashMap<>();
+
+            if (exchange.getRequestURI().getQuery() != null) {
+                for (String param : exchange.getRequestURI().getQuery().split("&")) {
+                    String[] entry = param.split("=");
+                    if (entry.length > 1) {
+                        parameters.put(entry[0], entry[1]);
+                    } else {
+                        parameters.put(entry[0], "");
+                    }
+                }
+            }
+
+            Request request = Request.builder()
+                    .requestBody(buf.toString())
+                    .headers(exchange.getRequestHeaders())
+                    .parameters(parameters)
+                    .build();
+
             exchange.getResponseHeaders().add("Content-Type", handle.returnType().getHeader());
             exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
-            Response response = invokeMethod(method, exchange, toInvoke);
+
+            if (handle.authorization() != AuthorizationType.NONE) {
+                AuthenticationUtil authenticationUtil = new AuthenticationUtil();
+                List<String> authHeader = request.getHeaders().get("Authorization");
+                if (authHeader == null || authHeader.isEmpty() || (!authHeader.get(0).startsWith("Bearer ") && !authHeader.get(0).startsWith("Basic "))) {
+                    sendUnauthorized(exchange, "Please include an authorization header.");
+                    return;
+                }
+
+                switch (handle.authorization()) {
+                    case BEARER -> {
+                        if (!authHeader.get(0).startsWith("Bearer ")) {
+                            sendUnauthorized(exchange, "Please use a Bearer authentication header.");
+                            return;
+                        }
+
+                        if (!authenticationUtil.verifyToken(authHeader.get(0).substring("Bearer ".length()))) {
+                            sendUnauthorized(exchange, "Token invalid");
+                            return;
+                        }
+                    }
+                    case BASIC -> {
+                        if (!authHeader.get(0).startsWith("Basic ")) {
+                            sendUnauthorized(exchange, "Please use a Basic authentication header.");
+                            return;
+                        }
+
+                        // TODO implement
+                    }
+                }
+
+            }
+
+            Response response = invokeMethod(method, exchange, request, toInvoke);
 
             if (response == null) {
                 writeError(exchange, new NullPointerException("Response was not specified"));
@@ -145,6 +214,13 @@ public class HandlerLoader {
         };
     }
 
+    private void sendUnauthorized(HttpExchange exchange, String msg) throws IOException {
+        String message = Constants.INSTANCE.getGson().toJson(new JsonMessage(msg));
+        exchange.sendResponseHeaders(HttpURLConnection.HTTP_UNAUTHORIZED, message.getBytes().length);
+        exchange.getResponseBody().write(message.getBytes());
+        exchange.close();
+    }
+
     private void writeError(HttpExchange exchange, Object error) throws IOException {
         String jsonError = Constants.INSTANCE.getGson().toJson(error);
         exchange.sendResponseHeaders(HttpURLConnection.HTTP_INTERNAL_ERROR, jsonError.getBytes().length);
@@ -162,13 +238,17 @@ public class HandlerLoader {
         }
     }
 
-    private Response invokeMethod(Method method, HttpExchange exchange, Object toInvoke) {
+    private Response invokeMethod(Method method, HttpExchange exchange, Request request, Object toInvoke) {
         try {
-            if (method.getParameterTypes().length == 1 && method.getParameterTypes()[0] == HttpExchange.class) {
-                return (Response) method.invoke(toInvoke, exchange);
-            } else {
-                return (Response) method.invoke(toInvoke);
+            List<Object> parameters = new LinkedList<>();
+            for (Class<?> parameterType : method.getParameterTypes()) {
+                if (HttpExchange.class.equals(parameterType)) {
+                    parameters.add(exchange);
+                } else if (Request.class.equals(parameterType)) {
+                    parameters.add(request);
+                }
             }
+            return (Response) method.invoke(toInvoke, parameters.isEmpty() ? null : parameters.toArray());
         } catch (IllegalAccessException | InvocationTargetException e) {
             logger.severe("Something went wrong while invoking method: " + method.getName() + " in class " + toInvoke.getClass().getCanonicalName());
             e.printStackTrace();

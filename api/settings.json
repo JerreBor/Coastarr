@@ -1,0 +1,15 @@
+{
+  "TMDB_TOKEN": "CHANGE_THIS",
+  "TMDB_WEB": "https://api.themoviedb.org/3/%s?api_key\u003d%s",
+  "AUTH_SECRET": "goEaKNI6p2Ee0iVs5hoDn59x5Vd+lLeiQBBuTvlSAe9LqMEp0OCcQIvIVdu//dGPYcUY5yY9mxaqXPRAXGGYew\u003d\u003d",
+  "PASS_SECRET": "59ReVszVuiELbHoMk7h+lJn2c5T73fA5YxN59RGjXXvToIpGMD2621ZRMvDioNxiLIPkL0+Nvte9Wp9oYeXfa/lwdsVdvx+I2iwDA5V2ylNJCvRLuIigSLktW0u1D5hkoiPu8put2PT41PSP1LRi8E/V7gBYrt8uRZNBRA6VgVn2e52ewll5YNBptYTUZmlJP9KqKLWw4wUs8lGfaIn31CUdiCwmzFy50UCKrRSTOrWT87I2eOiq5jq5ozIO7X9JGJD5LzBgutG2i3BNaiy6WOWzfnLR62offBkA9jhbo/aaMLsqYIltazxb4OD8UIMSvVopwR/PFh07qjccV8r/pVuUrcvXY/hyE715fq46wxYIpHGoshCqSIPukTGX+Be/8nszLv6AAKRiIG3bGnP3EcJYgvPhzauG0CqA8KbsnltEy5zG2j4b7yN/9OA6GJ1pANx9+G02zy1sYHHPPtHC5Sbhvx9+y1VeaDICZhJXdp8pKvFTatgmWdczchL7LmuSPd8ZplIH5NpNOvU8QIwMU+N3mXdpmdQnPtM23qIVEJF5MgMhQqiIpNa0k0E84yNEIS1U4ZOjuoShdLz4cL1ZJI+Y4Hd2645Kuea71xjBHt0FQSlME3DHpvZpPt3ZeI/5ErrpXCQkhpxmNXQb14ip9l1gl+KRL7pQ0LEgZEQMdPs\u003d",
+  "TOKEN_EXPIRATION": 900,
+  "DATABASE": {
+    "url": "127.0.0.1",
+    "database": "coastarr",
+    "username": "coastarr",
+    "password": "CHANGE_THIS",
+    "tablePrefix": "c_",
+    "port": 3306
+  }
+}
