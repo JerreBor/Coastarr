@@ -12,6 +12,7 @@ import org.hibernate.query.Query;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -83,9 +84,60 @@ public class User {
 
     @Handle(requestType = RequestType.GET, returnType = ReturnType.JSON)
     public Response get(Request request) {
+        Map<String, String> parameters = request.getParameters();
 
+        Session session = Coastarr.getSettingsUtil().getSettings().getDATABASE().getSessionFactory().openSession();
 
-        return Response.builder().json("").build();
+        if (parameters.containsKey("username")) {
+            nl.jerodeveloper.coastarr.api.objects.users.User user = (nl.jerodeveloper.coastarr.api.objects.users.User)
+                    session.createQuery("SELECT u FROM User u WHERE u.username=:name").setParameter("name", parameters.get("username")).uniqueResult();
+
+            if (user == null) {
+                return Response.builder()
+                        .code(HttpURLConnection.HTTP_NOT_FOUND)
+                        .json(new JsonError("Could not find user with that username", HttpURLConnection.HTTP_NOT_FOUND))
+                        .build();
+            }
+
+            user.setHash(null); // Stop hash from being displayed
+
+            return Response.builder()
+                    .json(new UserGetResponse(user))
+                    .build();
+        } else if (parameters.containsKey("id")) {
+
+            int id;
+
+            try {
+                id = Integer.parseInt(parameters.get("id"));
+            } catch (Exception e) {
+                return Response.builder()
+                        .code(HttpURLConnection.HTTP_BAD_REQUEST)
+                        .json(new JsonError("Please provide a number as id", HttpURLConnection.HTTP_BAD_REQUEST))
+                        .build();
+            }
+
+            nl.jerodeveloper.coastarr.api.objects.users.User user = (nl.jerodeveloper.coastarr.api.objects.users.User)
+                    session.createQuery("SELECT u FROM User u WHERE u.id=:id").setParameter("id", id).uniqueResult();
+
+            if (user == null) {
+                return Response.builder()
+                        .code(HttpURLConnection.HTTP_NOT_FOUND)
+                        .json(new JsonError("Could not find user with that id", HttpURLConnection.HTTP_NOT_FOUND))
+                        .build();
+            }
+
+            user.setHash(null); // Stop hash from being displayed
+
+            return Response.builder()
+                    .json(new UserGetResponse(user))
+                    .build();
+        } else {
+            return Response.builder()
+                    .code(HttpURLConnection.HTTP_BAD_REQUEST)
+                    .json(new JsonError("Please include a username or id parameter", HttpURLConnection.HTTP_BAD_REQUEST))
+                    .build();
+        }
     }
 
     private static class UserGetResponse {
@@ -93,7 +145,6 @@ public class User {
         final nl.jerodeveloper.coastarr.api.objects.users.User USER;
 
         public UserGetResponse(nl.jerodeveloper.coastarr.api.objects.users.User user) {
-
             this.USER = user;
         }
 
