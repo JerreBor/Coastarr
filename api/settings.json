@@ -1,0 +1,16 @@
+{
+  "TMDB_TOKEN": "CHANGE_THIS",
+  "TMDB_WEB": "https://api.themoviedb.org/3/%s?api_key\u003d%s",
+  "AUTH_SECRET": "",
+  "PASS_SECRET": "",
+  "PASS_ITERATIONS": 65536,
+  "TOKEN_EXPIRATION": 900,
+  "DATABASE": {
+    "url": "jdbc:mysql://127.0.0.1",
+    "database": "coastarr",
+    "username": "coastarr",
+    "password": "CHANGE_THIS",
+    "dialect": "MySQL5Dialect",
+    "port": 3306
+  }
+}

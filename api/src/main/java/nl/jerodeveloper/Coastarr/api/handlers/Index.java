@@ -1,14 +1,15 @@
 package nl.jerodeveloper.coastarr.api.handlers;
 
 import nl.jerodeveloper.coastarr.api.annotations.*;
+import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 
-@Handler(requestType = RequestType.ALL, returnType = ReturnType.TEXT, route = "/")
+@Handler(route = "/")
 public class Index {
 
-    @Handle
+    @Handle(requestType = RequestType.GET, returnType = ReturnType.JSON, authorization = AuthorizationType.NONE)
     public Response handle() {
         return Response.builder()
-                .text("Hello, World!\n")
+                .json(new JsonMessage("Hello, World!"))
                 .build();
     }
 

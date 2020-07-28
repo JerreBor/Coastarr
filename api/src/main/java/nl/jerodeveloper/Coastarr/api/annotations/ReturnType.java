@@ -5,6 +5,7 @@ import lombok.Getter;
 public enum ReturnType {
 
     JSON("application/json"),
+    @Deprecated
     TEXT("text/plain; charset=utf-8"),
     ;
 

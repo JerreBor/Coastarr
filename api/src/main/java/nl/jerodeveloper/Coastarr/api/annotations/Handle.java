@@ -7,4 +7,10 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
-public @interface Handle {}
+public @interface Handle {
+
+    RequestType requestType();
+    ReturnType returnType();
+    AuthorizationType authorization() default AuthorizationType.BEARER;
+
+}
