@@ -3,7 +3,6 @@ package nl.jerodeveloper.coastarr.api;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.Getter;
-import lombok.Setter;
 
 public enum Constants {
 

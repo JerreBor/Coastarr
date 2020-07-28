@@ -1,17 +1,13 @@
 package nl.jerodeveloper.coastarr.api.handlers.api.auth;
 
-import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.io.Encoders;
 import nl.jerodeveloper.coastarr.api.Coastarr;
 import nl.jerodeveloper.coastarr.api.annotations.*;
+import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 import nl.jerodeveloper.coastarr.api.objects.users.User;
 import nl.jerodeveloper.coastarr.api.util.AuthenticationUtil;
-import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.List;
 
 @Handler
 public class Token {
@@ -34,7 +30,7 @@ public class Token {
         private final String REFRESH_TOKEN;
 
         public TokenResponse(User user) {
-            super("Succesfully authenticated!");
+            super("Successfully authenticated!");
             this.TOKEN = authenticationUtil.generateToken(user);
             this.EXPIRES_IN = Coastarr.getSettingsUtil().getSettings().getTOKEN_EXPIRATION();
             SecureRandom secureRandom = new SecureRandom();

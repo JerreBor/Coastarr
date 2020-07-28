@@ -12,16 +12,13 @@ import nl.jerodeveloper.coastarr.api.filters.Tracing;
 import nl.jerodeveloper.coastarr.api.objects.JsonError;
 import nl.jerodeveloper.coastarr.api.objects.users.User;
 import nl.jerodeveloper.coastarr.api.util.AuthenticationUtil;
-import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 import nl.jerodeveloper.coastarr.api.util.PasswordUtil;
 import org.hibernate.Session;
-import org.hibernate.query.Query;
 import org.reflections.Reflections;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
@@ -159,7 +156,7 @@ public class HandlerLoader {
             exchange.getResponseHeaders().add("Content-Type", handle.returnType().getHeader());
             exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
 
-            CompletableFuture<Boolean> authorized = null;
+            CompletableFuture<Boolean> authorized;
 
             if (handle.authorization() != AuthorizationType.NONE) {
                 AuthenticationUtil authenticationUtil = new AuthenticationUtil();
@@ -238,7 +235,7 @@ public class HandlerLoader {
                         }).exceptionally(throwable -> false);
                         break;
                     default:
-                        writeError(exchange, new UnsupportedOperationException("Unsupported return type."));
+                        writeError(exchange, new UnsupportedOperationException("Unsupported authentication type."));
                         authorized = CompletableFuture.completedFuture(false);
                 }
             } else {

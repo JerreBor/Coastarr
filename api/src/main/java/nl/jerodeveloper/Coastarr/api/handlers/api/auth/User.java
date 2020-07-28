@@ -90,7 +90,7 @@ public class User {
 
     private static class UserGetResponse {
 
-        nl.jerodeveloper.coastarr.api.objects.users.User USER;
+        final nl.jerodeveloper.coastarr.api.objects.users.User USER;
 
         public UserGetResponse(nl.jerodeveloper.coastarr.api.objects.users.User user) {
 
@@ -101,10 +101,10 @@ public class User {
 
     private static class UserPostResponse extends JsonMessage {
 
-        nl.jerodeveloper.coastarr.api.objects.users.User USER;
+        final nl.jerodeveloper.coastarr.api.objects.users.User USER;
 
         public UserPostResponse(nl.jerodeveloper.coastarr.api.objects.users.User user) {
-            super("Succesfully created user");
+            super("Successfully created user");
             this.USER = user;
         }
 
