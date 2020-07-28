@@ -7,12 +7,10 @@ import nl.jerodeveloper.coastarr.api.annotations.HandlerLoader;
 import nl.jerodeveloper.coastarr.api.handlers.Index;
 import nl.jerodeveloper.coastarr.api.handlers.api.Status;
 import nl.jerodeveloper.coastarr.api.handlers.api.auth.Token;
+import nl.jerodeveloper.coastarr.api.handlers.api.auth.User;
 import nl.jerodeveloper.coastarr.api.objects.ServerState;
 import nl.jerodeveloper.coastarr.api.objects.Settings;
-import nl.jerodeveloper.coastarr.api.objects.users.Group;
-import nl.jerodeveloper.coastarr.api.objects.users.User;
 import nl.jerodeveloper.coastarr.api.util.AuthenticationUtil;
-import nl.jerodeveloper.coastarr.api.util.PasswordUtil;
 import nl.jerodeveloper.coastarr.api.util.SettingsUtil;
 
 import java.io.IOException;
@@ -34,26 +32,9 @@ public class Coastarr {
 
         settingsUtil.loadSettings();
 
-        // TEST
-        PasswordUtil passwordUtil = new PasswordUtil();
-        String password = "kaas123";
-        passwordUtil.getSalt().whenComplete((s, throwable) -> {
-            String salt = s.orElseThrow();
-            passwordUtil.hashPassword(password, s.orElseThrow()).whenComplete((s1, throwable1) -> {
-                User user = new User(0, "Kaashapje", s1.orElseThrow(), Group.USER);
-                // PASSWORD CORRECT
-                passwordUtil.verifyPassword(password, user.getKey(), salt).whenComplete((aBoolean, throwable2) -> {
-                    System.out.println(aBoolean);
-                });
+        Settings s = settingsUtil.getSettings();
 
-                // PASSWORD INCORRECT
-                passwordUtil.verifyPassword("kaas321", user.getKey(), salt).whenComplete((aBoolean, throwable2) -> {
-                    System.out.println(aBoolean);
-                });
-            });
-        });
-
-
+        s.getDATABASE().connect();
 
         AuthenticationUtil authenticationUtil = new AuthenticationUtil();
         authenticationUtil.generateAuthenticationSecret();
@@ -72,7 +53,7 @@ public class Coastarr {
                 settingsUtil.saveSettings();
             } catch (IOException e) {
                 logger.severe("Something went wrong while saving settings, dumping settings for recovery:");
-                System.out.println(Constants.INSTANCE.getGson().toJson(settingsUtil.getSettings()));
+                System.out.println(Constants.INSTANCE.getGson().toJson(s));
                 e.printStackTrace();
             }
             logger.info("Shutting down http server...");
@@ -90,6 +71,7 @@ public class Coastarr {
         handler(Index::new);
         handler(() -> new Status(serverState));
         handler(Token::new);
+        handler(User::new);
 
         httpServer = handlerLoader.load();
 

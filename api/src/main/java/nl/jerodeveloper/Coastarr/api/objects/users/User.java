@@ -1,14 +1,22 @@
 package nl.jerodeveloper.coastarr.api.objects.users;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
-@Getter
-@AllArgsConstructor
-public class User {
+import javax.persistence.*;
+import java.io.Serializable;
 
-    int id;
-    String username, key;
-    Group userGroup;
+@Getter @Setter
+@Entity @Table(name = "users")
+public class User implements Serializable {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+    @Column(name = "username")
+    private String username;
+    @Column(name = "hash")
+    private String hash;
+    @Column(name = "role")
+    private Role userRole;
 
 }

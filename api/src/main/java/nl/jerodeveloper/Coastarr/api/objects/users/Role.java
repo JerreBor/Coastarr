@@ -1,7 +1,7 @@
 package nl.jerodeveloper.coastarr.api.objects.users;
 
-public enum Group {
+public enum Role {
 
-    ADMIN, USER;
+    ADMIN, USER
 
 }

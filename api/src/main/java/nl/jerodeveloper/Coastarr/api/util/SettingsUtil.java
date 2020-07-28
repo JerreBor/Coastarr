@@ -5,6 +5,7 @@ import nl.jerodeveloper.coastarr.api.Constants;
 import nl.jerodeveloper.coastarr.api.objects.Settings;
 
 import java.io.*;
+import java.util.Scanner;
 
 public class SettingsUtil {
 
@@ -12,8 +13,14 @@ public class SettingsUtil {
 
     public void loadSettings() throws IOException {
         File file = createSettingsFile();
+        Scanner scanner = new Scanner(file);
+        StringBuilder stringBuilder = new StringBuilder();
+        while (scanner.hasNextLine()) {
+            stringBuilder.append(scanner.nextLine());
+        }
+        scanner.close();
 
-        this.settings = Constants.INSTANCE.getGson().fromJson(new FileReader(file), Settings.class);
+        this.settings = Constants.INSTANCE.getGson().fromJson(stringBuilder.toString(), Settings.class);
     }
 
     public void saveSettings() throws IOException {

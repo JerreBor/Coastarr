@@ -1,7 +1,7 @@
 package nl.jerodeveloper.coastarr.api.handlers;
 
 import nl.jerodeveloper.coastarr.api.annotations.*;
-import nl.jerodeveloper.coastarr.api.util.JsonMessage;
+import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 
 @Handler(route = "/")
 public class Index {

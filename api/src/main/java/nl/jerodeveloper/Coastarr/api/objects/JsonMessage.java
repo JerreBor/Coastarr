@@ -1,4 +1,4 @@
-package nl.jerodeveloper.coastarr.api.util;
+package nl.jerodeveloper.coastarr.api.objects;
 
 import lombok.Data;
 

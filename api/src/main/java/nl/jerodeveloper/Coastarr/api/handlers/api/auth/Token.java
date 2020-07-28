@@ -4,13 +4,13 @@ import com.google.common.io.BaseEncoding;
 import io.jsonwebtoken.io.Encoders;
 import nl.jerodeveloper.coastarr.api.Coastarr;
 import nl.jerodeveloper.coastarr.api.annotations.*;
-import nl.jerodeveloper.coastarr.api.objects.users.Group;
 import nl.jerodeveloper.coastarr.api.objects.users.User;
 import nl.jerodeveloper.coastarr.api.util.AuthenticationUtil;
-import nl.jerodeveloper.coastarr.api.util.JsonMessage;
+import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 
 @Handler
@@ -24,33 +24,14 @@ public class Token {
 
     @Handle(requestType = RequestType.POST, returnType = ReturnType.JSON, authorization = AuthorizationType.BASIC)
     public Response post(Request request) {
-        List<String> authHeader = request.getHeaders().get("Authorization");
-
-        String encodedUserPass = authHeader.get(0).substring("Basic ".length());
-        String userpass = new String(BaseEncoding.base64().decode(encodedUserPass), StandardCharsets.UTF_8);
-
-        String username = userpass.split(":")[0];
-        String password = userpass.split(":")[1];
-
-        // TODO check username/password, send 401 if unauthorized
-
-/*
-        if (false) {
-            return Response.builder()
-                    .code(HttpURLConnection.HTTP_UNAUTHORIZED)
-                    .json(new JsonMessage("Invalid username and/or password"))
-                    .build();
-        }
-*/
-
-        return Response.builder().json(new TokenResponse(new User(0, username, password, Group.USER))).build();
+        return Response.builder().json(new TokenResponse(request.getUser())).build();
     }
 
     private class TokenResponse extends JsonMessage {
 
-        private String TOKEN;
-        private long EXPIRES_IN;
-        private String REFRESH_TOKEN;
+        private final String TOKEN;
+        private final long EXPIRES_IN;
+        private final String REFRESH_TOKEN;
 
         public TokenResponse(User user) {
             super("Succesfully authenticated!");

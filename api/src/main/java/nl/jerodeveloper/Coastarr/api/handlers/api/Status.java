@@ -2,7 +2,7 @@ package nl.jerodeveloper.coastarr.api.handlers.api;
 
 import nl.jerodeveloper.coastarr.api.annotations.*;
 import nl.jerodeveloper.coastarr.api.objects.ServerState;
-import nl.jerodeveloper.coastarr.api.util.JsonMessage;
+import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
 
 import java.util.concurrent.atomic.AtomicReference;
 

@@ -11,23 +11,20 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 public class PasswordUtil {
 
-    public CompletableFuture<Optional<String>> getSalt() {
-        return CompletableFuture.supplyAsync(() -> {
-            if (Coastarr.getSettingsUtil().getSettings().getPASS_SECRET().isEmpty()) {
-                byte[] salt = new byte[512];
-                new SecureRandom().nextBytes(salt);
+    public Optional<String> getSalt() {
+        if (Coastarr.getSettingsUtil().getSettings().getPASS_SECRET().isEmpty()) {
+            byte[] salt = new byte[512];
+            new SecureRandom().nextBytes(salt);
 
-                String saltEncoded = Base64.getEncoder().encodeToString(salt);
-                Coastarr.getSettingsUtil().getSettings().setPASS_SECRET(saltEncoded);
+            String saltEncoded = Base64.getEncoder().encodeToString(salt);
+            Coastarr.getSettingsUtil().getSettings().setPASS_SECRET(saltEncoded);
 
-                return Optional.of(saltEncoded);
-            }
-            return Optional.of(Coastarr.getSettingsUtil().getSettings().getPASS_SECRET());
-        });
+            return Optional.of(saltEncoded);
+        }
+        return Optional.of(Coastarr.getSettingsUtil().getSettings().getPASS_SECRET());
     }
 
     public CompletableFuture<Optional<String>> hashPassword(String password, String salt) {
@@ -35,7 +32,7 @@ public class PasswordUtil {
             char[] chars = password.toCharArray();
             byte[] bytes = salt.getBytes();
 
-            PBEKeySpec spec = new PBEKeySpec(chars, bytes, 65536, 512);
+            PBEKeySpec spec = new PBEKeySpec(chars, bytes, Coastarr.getSettingsUtil().getSettings().getPASS_ITERATIONS(), 512);
 
             Arrays.fill(chars, Character.MIN_VALUE);
 

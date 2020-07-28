@@ -1,6 +1,5 @@
 package nl.jerodeveloper.coastarr.api.util;
 
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -33,7 +32,7 @@ public class AuthenticationUtil {
     public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getUsername())
-                .claim("userGroup", user.getUserGroup())
+                .claim("userGroup", user.getUserRole())
                 .setIssuedAt(Date.from(Instant.now()))
                 .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(Coastarr.getSettingsUtil().getSettings().getAUTH_SECRET())))
                 .setExpiration(Date.from(Instant.now().plusSeconds(Coastarr.getSettingsUtil().getSettings().getTOKEN_EXPIRATION())))

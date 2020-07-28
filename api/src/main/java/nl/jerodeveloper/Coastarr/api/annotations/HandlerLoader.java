@@ -5,21 +5,29 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Getter;
+import nl.jerodeveloper.coastarr.api.Coastarr;
 import nl.jerodeveloper.coastarr.api.Constants;
 import nl.jerodeveloper.coastarr.api.filters.Logging;
 import nl.jerodeveloper.coastarr.api.filters.Tracing;
+import nl.jerodeveloper.coastarr.api.objects.JsonError;
+import nl.jerodeveloper.coastarr.api.objects.users.User;
 import nl.jerodeveloper.coastarr.api.util.AuthenticationUtil;
-import nl.jerodeveloper.coastarr.api.util.JsonMessage;
+import nl.jerodeveloper.coastarr.api.objects.JsonMessage;
+import nl.jerodeveloper.coastarr.api.util.PasswordUtil;
+import org.hibernate.Session;
+import org.hibernate.query.Query;
 import org.reflections.Reflections;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 public class HandlerLoader {
@@ -81,7 +89,7 @@ public class HandlerLoader {
             }
 
             for (Map.Entry<String, Method> methodEntry : methodMap.entrySet()) {
-                if (methodEntry.getValue().getReturnType() != Response.class) {
+                if (methodEntry.getValue().getReturnType() != Response.class && methodEntry.getValue().getReturnType() != CompletableFuture.class) {
                     methodMap.remove(methodEntry.getKey());
                     logger.warning(methodEntry.getKey() + " method does not return Response type.");
                 }
@@ -151,6 +159,8 @@ public class HandlerLoader {
             exchange.getResponseHeaders().add("Content-Type", handle.returnType().getHeader());
             exchange.getResponseHeaders().add("X-Content-Type-Options", "nosniff");
 
+            CompletableFuture<Boolean> authorized = null;
+
             if (handle.authorization() != AuthorizationType.NONE) {
                 AuthenticationUtil authenticationUtil = new AuthenticationUtil();
                 List<String> authHeader = request.getHeaders().get("Authorization");
@@ -159,86 +169,164 @@ public class HandlerLoader {
                     return;
                 }
 
+
                 switch (handle.authorization()) {
-                    case BEARER -> {
+                    case BEARER :
                         if (!authHeader.get(0).startsWith("Bearer ")) {
-                            sendUnauthorized(exchange, "Please use a Bearer authentication header.");
-                            return;
+                            sendUnauthorized(exchange, "Please include an authentication header with a valid bearer token");
+                            authorized = CompletableFuture.completedFuture(false);
+                            break;
                         }
 
                         if (!authenticationUtil.verifyToken(authHeader.get(0).substring("Bearer ".length()))) {
-                            sendUnauthorized(exchange, "Token invalid");
-                            return;
+                            sendUnauthorized(exchange, "Token is invalid");
+                            authorized = CompletableFuture.completedFuture(false);
+                            break;
                         }
-                    }
-                    case BASIC -> {
+
+                        authorized = CompletableFuture.completedFuture(true);
+                        break;
+                    case BASIC:
                         if (!authHeader.get(0).startsWith("Basic ")) {
-                            sendUnauthorized(exchange, "Please use a Basic authentication header.");
-                            return;
+                            sendUnauthorized(exchange, "Please include a base64-encoded basic authorization header in this format: username:password");
+                            authorized = CompletableFuture.completedFuture(false);
+                            break;
                         }
 
-                        // TODO implement
-                    }
+                        String encodedUserPass = authHeader.get(0).substring("Basic ".length());
+
+                        String userpass;
+
+                        try {
+                            userpass = new String(Base64.getDecoder().decode(encodedUserPass), StandardCharsets.UTF_8);
+                        } catch (Exception e) {
+                            sendUnauthorized(exchange, "Please include a base64-encoded basic authorization header in this format: username:password");
+                            authorized = CompletableFuture.completedFuture(false);
+                            break;
+                        }
+
+                        if (userpass.split(":").length != 2) {
+                            sendUnauthorized(exchange, "Please include a base64-encoded basic authorization header in this format: username:password");
+                            authorized = CompletableFuture.completedFuture(false);
+                            break;
+                        }
+
+                        String username = userpass.split(":")[0];
+                        String password = userpass.split(":")[1];
+
+                        PasswordUtil passwordUtil = new PasswordUtil();
+                        authorized = passwordUtil.hashPassword(password, passwordUtil.getSalt().orElseThrow()).thenApply(s -> {
+                            Session session = Coastarr.getSettingsUtil().getSettings().getDATABASE().getSessionFactory().openSession();
+
+                            User user;
+
+                            try {
+                               user = (User) session.createQuery("SELECT u FROM User u WHERE u.username=:name").setParameter("name", username).uniqueResult();
+                            } catch (Exception e) {
+                                sendUnauthorized(exchange, "Username or password is incorrect");
+                                return false;
+                            }
+
+                            if (!user.getHash().equals(s.orElseThrow())) {
+                                sendUnauthorized(exchange, "Username or password is incorrect");
+                                return false;
+                            }
+
+                            request.setUser(user);
+
+                            return true;
+                        }).exceptionally(throwable -> false);
+                        break;
+                    default:
+                        writeError(exchange, new UnsupportedOperationException("Unsupported return type."));
+                        authorized = CompletableFuture.completedFuture(false);
                 }
-
-            }
-
-            Response response = invokeMethod(method, exchange, request, toInvoke);
-
-            if (response == null) {
-                writeError(exchange, new NullPointerException("Response was not specified"));
             } else {
-                switch (handle.returnType()) {
-                    case JSON -> {
-                        if (response.getJson() == null) {
-                            writeError(exchange, new IllegalArgumentException(String.format("%s method in class %s with ReturnType of JSON does not return JSON response.", method.getName(), method.getDeclaringClass().getCanonicalName())));
-                            break;
-                        }
-
-                        sendResponseHeaders(exchange, response);
-                        exchange.getResponseBody().write(response.getJson().getBytes());
-                    }
-                    case TEXT -> {
-                        if (response.getText() == null) {
-                            writeError(exchange, new IllegalArgumentException(String.format("%s method in class %s with ReturnType of TEXT does not return TEXT response.", method.getName(), method.getDeclaringClass().getCanonicalName())));
-                            break;
-                        }
-
-                        sendResponseHeaders(exchange, response);
-                        exchange.getResponseBody().write(response.getText().getBytes());
-                    }
-                }
+                authorized = CompletableFuture.completedFuture(true);
             }
 
-            exchange.close();
+            authorized.whenComplete((authorizedBoolean, throwable) -> {
+                if (!authorizedBoolean) return;
+
+                CompletableFuture<Response> completableResponse = invokeMethod(method, exchange, request, toInvoke);
+                if (completableResponse == null) {
+                    writeError(exchange, new NullPointerException("Response is null"));
+                    return;
+                }
+
+                completableResponse.whenComplete((response, throwable1) -> {
+                    try {
+                        if (response == null) {
+                            writeError(exchange, new NullPointerException("Response was not specified"));
+                        } else {
+                            switch (handle.returnType()) {
+                                case JSON :
+                                    if (response.getJson() == null) {
+                                        writeError(exchange, new IllegalArgumentException(String.format("%s method in class %s with ReturnType of JSON does not return JSON response.", method.getName(), method.getDeclaringClass().getCanonicalName())));
+                                        break;
+                                    }
+
+                                    sendResponseHeaders(exchange, response);
+                                    exchange.getResponseBody().write(response.getJson().getBytes());
+                                    break;
+                                case TEXT :
+                                    if (response.getText() == null) {
+                                        writeError(exchange, new IllegalArgumentException(String.format("%s method in class %s with ReturnType of TEXT does not return TEXT response.", method.getName(), method.getDeclaringClass().getCanonicalName())));
+                                        break;
+                                    }
+
+                                    sendResponseHeaders(exchange, response);
+                                    exchange.getResponseBody().write(response.getText().getBytes());
+                                    break;
+                            }
+
+                            exchange.close();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+            });
         };
     }
 
-    private void sendUnauthorized(HttpExchange exchange, String msg) throws IOException {
-        String message = Constants.INSTANCE.getGson().toJson(new JsonMessage(msg));
-        exchange.sendResponseHeaders(HttpURLConnection.HTTP_UNAUTHORIZED, message.getBytes().length);
-        exchange.getResponseBody().write(message.getBytes());
-        exchange.close();
-    }
-
-    private void writeError(HttpExchange exchange, Object error) throws IOException {
-        String jsonError = Constants.INSTANCE.getGson().toJson(error);
-        exchange.sendResponseHeaders(HttpURLConnection.HTTP_INTERNAL_ERROR, jsonError.getBytes().length);
-        exchange.getResponseBody().write(jsonError.getBytes());
-        logger.severe(jsonError);
-    }
-
-    private void sendResponseHeaders(HttpExchange exchange, Response response) throws IOException {
-        if (response.getCode() != 0) {
-            exchange.sendResponseHeaders(response.getCode(),
-                    response.getJson() == null ? (response.getText() == null ? 0 : response.getText().length()) : response.getJson().length());
-        } else {
-            exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK,
-                    response.getJson() == null ? (response.getText() == null ? 0 : response.getText().length()) : response.getJson().length());
+    private void sendUnauthorized(HttpExchange exchange, String msg) {
+        try {
+            String message = Constants.INSTANCE.getGson().toJson(new JsonError(msg, HttpURLConnection.HTTP_UNAUTHORIZED));
+            exchange.sendResponseHeaders(HttpURLConnection.HTTP_UNAUTHORIZED, message.getBytes().length);
+            exchange.getResponseBody().write(message.getBytes());
+            exchange.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private Response invokeMethod(Method method, HttpExchange exchange, Request request, Object toInvoke) {
+    private void writeError(HttpExchange exchange, Throwable error) {
+        try {
+            String jsonError = Constants.INSTANCE.getGson().toJson(new JsonError(error.getMessage(), HttpURLConnection.HTTP_INTERNAL_ERROR));
+            exchange.sendResponseHeaders(HttpURLConnection.HTTP_INTERNAL_ERROR, jsonError.getBytes().length);
+            exchange.getResponseBody().write(jsonError.getBytes());
+            logger.severe(jsonError);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendResponseHeaders(HttpExchange exchange, Response response) {
+        try {
+            if (response.getCode() != 0) {
+                exchange.sendResponseHeaders(response.getCode(),
+                        response.getJson() == null ? (response.getText() == null ? 0 : response.getText().length()) : response.getJson().length());
+            } else {
+                exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK,
+                        response.getJson() == null ? (response.getText() == null ? 0 : response.getText().length()) : response.getJson().length());
+            }
+        } catch (IOException exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    private CompletableFuture<Response> invokeMethod(Method method, HttpExchange exchange, Request request, Object toInvoke) {
         try {
             List<Object> parameters = new LinkedList<>();
             for (Class<?> parameterType : method.getParameterTypes()) {
@@ -248,7 +336,21 @@ public class HandlerLoader {
                     parameters.add(request);
                 }
             }
-            return (Response) method.invoke(toInvoke, parameters.isEmpty() ? null : parameters.toArray());
+
+            CompletableFuture<Response> completableResponse;
+
+            if (method.getReturnType() == CompletableFuture.class) {
+                try {
+                    completableResponse = (CompletableFuture<Response>) method.invoke(toInvoke, parameters.isEmpty() ? null : parameters.toArray());
+                } catch (ClassCastException e) {
+                    logger.severe("Method " + method.getName() + " in class " + toInvoke.getClass().getCanonicalName() + " does not return CompletableFuture<Response>");
+                    return null;
+                }
+            } else {
+                completableResponse = CompletableFuture.completedFuture((Response) method.invoke(toInvoke, parameters.isEmpty() ? null : parameters.toArray()));
+            }
+
+            return completableResponse;
         } catch (IllegalAccessException | InvocationTargetException e) {
             logger.severe("Something went wrong while invoking method: " + method.getName() + " in class " + toInvoke.getClass().getCanonicalName());
             e.printStackTrace();
